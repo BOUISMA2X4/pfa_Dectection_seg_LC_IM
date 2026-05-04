@@ -4,7 +4,6 @@
 venv/
 .venv/
 env/
-.env
 *.pyc
 *.pyo
 *.pyd
@@ -33,10 +32,10 @@ PH2_clean/
 *.tar.gz
 
 # ============================================================
-# CLES API ET SECRETS - Ne jamais versionner
+# SECRETS ET VARIABLES D'ENVIRONNEMENT
 # ============================================================
-kaggle.json
 .env
+kaggle.json
 *.key
 secrets/
 credentials/
@@ -63,27 +62,18 @@ checkpoints/
 # ============================================================
 # SYSTEME D'EXPLOITATION
 # ============================================================
-
-# Windows
 Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
-
-# Mac
 .DS_Store
 .AppleDouble
-.LSOverride
-
-# Linux
 *~
-.nfs*
 
 # ============================================================
-# LOGS ET FICHIERS TEMPORAIRES
+# LOGS
 # ============================================================
 *.log
 *.tmp
-*.temp
 logs/
 runs/
 wandb/
