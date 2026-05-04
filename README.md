@@ -10,14 +10,15 @@ de lesions cutanees dermoscopiques.
 1. [Prerequis](#prerequis)
 2. [Architecture du projet](#architecture-du-projet)
 3. [Installation](#installation)
-4. [Configuration Kaggle](#configuration-kaggle)
-5. [Telechargement des datasets](#telechargement-des-datasets)
-6. [Nettoyage des donnees](#nettoyage-des-donnees)
-7. [Analyse exploratoire EDA](#analyse-exploratoire-eda)
-8. [Pipeline complet](#pipeline-complet)
-9. [Verification PyTorch](#verification-pytorch)
-10. [Parametres configurables](#parametres-configurables)
-11. [Problemes frequents](#problemes-frequents)
+4. [Configuration des variables d'environnement](#configuration-des-variables-denvironnement)
+5. [Configuration Kaggle](#configuration-kaggle)
+6. [Telechargement des datasets](#telechargement-des-datasets)
+7. [Nettoyage des donnees](#nettoyage-des-donnees)
+8. [Analyse exploratoire EDA](#analyse-exploratoire-eda)
+9. [Pipeline complet](#pipeline-complet)
+10. [Verification PyTorch](#verification-pytorch)
+11. [Parametres configurables](#parametres-configurables)
+12. [Problemes frequents](#problemes-frequents)
 
 ---
 
@@ -44,7 +45,7 @@ Extensions VS Code recommandees :
 pfa_Dectection_seg_LC_IM/
 |
 |-- config/
-|   `-- config.py              # Tous les parametres centralises
+|   `-- config.py              # Tous les parametres centralises (lit depuis .env)
 |
 |-- data/
 |   |-- download.py            # Telechargement des datasets via Kaggle
@@ -61,6 +62,8 @@ pfa_Dectection_seg_LC_IM/
 |-- checkpoints/               # Poids des modeles sauvegardes
 |-- main.py                    # Point d'entree principal
 |-- requirements.txt           # Dependances Python
+|-- .env                       # Variables d'environnement - NE PAS PUSHER
+|-- .env.example               # Template .env pour les collaborateurs
 |-- .gitignore                 # Fichiers exclus de Git
 `-- README.md                  # Ce fichier
 ```
@@ -75,8 +78,8 @@ Utiliser cette commande pour recuperer le projet depuis GitHub.
 A faire une seule fois sur chaque machine.
 
 ```bash
-git clone https://github.com/BOUISMA2X4/pfa_Dectection_seg_LC_IM
-cd pfa_Dectection_seg_LC_IM
+git clone https://github.com/TON_USERNAME/PFA-2A-Skin-Lesion.git
+cd PFA-2A-Skin-Lesion
 ```
 
 ### Etape 2 - Creer l'environnement virtuel
@@ -130,6 +133,73 @@ Installation OK
 
 ---
 
+## Configuration des variables d'environnement
+
+### Pourquoi un fichier .env ?
+
+Les credentials Kaggle ne doivent jamais etre ecrits directement dans le code
+et ne doivent jamais etre pousses sur GitHub.
+Le fichier .env stocke ces informations de facon securisee sur ta machine uniquement.
+
+### Etape 5 - Creer le fichier .env
+
+Un fichier template .env.example est fourni dans le projet.
+Il suffit de le copier et de le remplir.
+
+```bash
+# Sur Windows :
+copy .env.example .env
+
+# Sur Mac / Linux :
+cp .env.example .env
+```
+
+### Etape 6 - Remplir le fichier .env
+
+Ouvrir le fichier .env et remplacer les valeurs par tes credentials Kaggle :
+
+```
+KAGGLE_USERNAME=ton_username_kaggle
+KAGGLE_KEY=ta_cle_api_kaggle
+```
+
+Pour recuperer tes credentials Kaggle :
+1. Aller sur https://www.kaggle.com/settings
+2. Section API
+3. Cliquer sur "Create New Token"
+4. Un fichier kaggle.json est telecharge contenant username et key
+
+### Verifier que le fichier .env est bien charge
+
+```bash
+python -c "
+from dotenv import load_dotenv
+import os
+load_dotenv()
+username = os.getenv('KAGGLE_USERNAME')
+key      = os.getenv('KAGGLE_KEY')
+print('KAGGLE_USERNAME :', username if username else 'MANQUANT')
+print('KAGGLE_KEY      :', key[:6] + '...' if key else 'MANQUANT')
+"
+```
+
+Resultat attendu :
+```
+KAGGLE_USERNAME : med sdt
+KAGGLE_KEY      : KGAT_f...
+```
+
+### Fichiers .env et securite
+
+| Fichier       | Sur GitHub | Role                                      |
+|---------------|------------|-------------------------------------------|
+| .env          | Non        | Contient tes vraies cles API              |
+| .env.example  | Oui        | Template vide a remplir par le binome     |
+
+Le fichier .env est protege par .gitignore et ne sera jamais pousse sur GitHub.
+
+---
+
 ## Configuration Kaggle
 
 ### Pourquoi Kaggle ?
@@ -137,36 +207,16 @@ Installation OK
 Les trois datasets du projet sont heberges sur Kaggle.
 L'API Kaggle permet de les telecharger directement en ligne de commande.
 
-### Etape 5 - Installer Kaggle
+### Etape 7 - Installer Kaggle
 
 ```bash
 pip install kaggle
 ```
 
-### Etape 6 - Configurer les credentials
+### Verifier la configuration
 
-Les credentials sont deja enregistres dans config/config.py.
-Le script data/download.py les configure automatiquement.
-
-Pour verifier manuellement que le fichier kaggle.json est bien cree :
-
-```bash
-# Sur Windows :
-type C:\Users\%USERNAME%\.kaggle\kaggle.json
-
-# Sur Mac / Linux :
-cat ~/.kaggle/kaggle.json
-```
-
-Contenu attendu :
-```json
-{
-  "username": "chi haja ",
-  "key": "chi code"
-}
-```
-
-### Tester la connexion Kaggle
+Les credentials sont lus automatiquement depuis le fichier .env via config/config.py.
+Pour tester que la connexion fonctionne :
 
 ```bash
 kaggle datasets list
@@ -178,7 +228,7 @@ Si cette commande retourne une liste de datasets, la configuration est correcte.
 
 ## Telechargement des datasets
 
-### Etape 7 - Lancer le telechargement automatique
+### Etape 8 - Lancer le telechargement automatique
 
 Ce script configure Kaggle et telecharge les 3 datasets en une seule commande.
 A lancer une seule fois depuis la racine du projet.
@@ -242,7 +292,7 @@ for name, path in datasets.items():
 A lancer une seule fois apres le telechargement de PH2.
 PH2 a une structure imbriquee complexe. Ce script la reorganise en deux dossiers plats.
 
-### Etape 8 - Nettoyer PH2
+### Etape 9 - Nettoyer PH2
 
 ```bash
 python data/clean.py
@@ -316,7 +366,7 @@ print(f'Images trouvees : {found} / {len(meta)}')
 A lancer apres le nettoyage pour visualiser les donnees avant l'entrainement.
 Genere des graphiques utiles pour le rapport et pour comprendre les donnees.
 
-### Etape 9 - Lancer l'EDA
+### Etape 10 - Lancer l'EDA
 
 ```bash
 python utils/eda.py
@@ -337,7 +387,7 @@ Fichiers generes dans outputs/ :
 
 ## Pipeline complet
 
-### Etape 10 - Lancer le pipeline
+### Etape 11 - Lancer le pipeline
 
 Lance toutes les etapes dans l'ordre : nettoyage, EDA, creation des DataLoaders.
 
@@ -376,6 +426,11 @@ PH2      - Train: 140  | Val: 30   | Test: 30
 # Activer l'environnement (a faire a chaque nouveau terminal)
 venv\Scripts\activate          # Windows
 source venv/bin/activate       # Mac/Linux
+
+# Configurer le fichier .env (une seule fois)
+copy .env.example .env         # Windows
+cp .env.example .env           # Mac/Linux
+# Puis remplir .env avec tes credentials Kaggle
 
 # Telecharger les datasets (une seule fois)
 python data/download.py
@@ -503,6 +558,18 @@ LEARNING_RATE = 1e-4
 
 ## Problemes frequents
 
+### EnvironmentError : Variables KAGGLE_USERNAME et KAGGLE_KEY manquantes
+
+Le fichier .env est absent ou mal configure.
+
+```bash
+# Creer le fichier .env depuis le template
+copy .env.example .env         # Windows
+cp .env.example .env           # Mac/Linux
+```
+
+Puis ouvrir .env et remplir les deux variables avec tes credentials Kaggle.
+
 ### ImportError : cannot import name 'X' from config.config
 
 Le fichier config/config.py est une ancienne version.
@@ -598,8 +665,10 @@ criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 ## Notes importantes
 
 - Ne jamais versionner le dossier data/ sur GitHub (trop lourd, presente dans .gitignore)
+- Ne jamais versionner le fichier .env sur GitHub (credentials Kaggle, presente dans .gitignore)
 - Ne jamais versionner kaggle.json (cle API privee, presente dans .gitignore)
 - Toujours activer le venv avant de lancer une commande Python
+- Toujours creer son propre .env depuis .env.example avant de lancer le projet
 - Les graphiques sont sauvegardes dans outputs/
 - Les poids des modeles seront sauvegardes dans checkpoints/
 - Modifier uniquement config/config.py pour changer les parametres globaux
