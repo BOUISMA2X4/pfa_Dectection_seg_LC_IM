@@ -161,8 +161,8 @@ cat ~/.kaggle/kaggle.json
 Contenu attendu :
 ```json
 {
-  "username": "med sdt",
-  "key": "KGAT_f02baeb30a5f223df64e9ccb6d2d4de9"
+  "username": "chi haja ",
+  "key": "chi code"
 }
 ```
 
