@@ -1,3 +1,4 @@
+# INCHANGE
 torch
 torchvision
 scikit-learn
@@ -7,5 +8,12 @@ seaborn
 pillow
 numpy
 kaggle
+python-dotenv
 jupyter
 ipykernel
+
+# NOUVEAU Phase 2
+albumentations       # remplace torchvision transforms
+torchmetrics         # F1, AUROC, Dice, IoU
+mlflow               # experiment tracking
+pytest               # tests unitaires
