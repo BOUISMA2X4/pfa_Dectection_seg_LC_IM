@@ -1,41 +1,38 @@
-# PFA 2A - Detection et Segmentation de Lesions Cutanees
+# PFA 2A — Detection et Segmentation de Lesions Cutanees
 
-Projet de deep learning pour la classification (HAM10000) et la segmentation (PH2)
-de lesions cutanees dermoscopiques.
+Projet de deep learning pour la **classification** (HAM10000) et la **segmentation** (PH2) de lesions cutanees dermoscopiques, developpe dans le cadre d'un projet de fin d'annee en 2eme annee.
 
 ---
 
 ## Table des matieres
 
-1. [Prerequis](#prerequis)
+1. [Apercu du projet](#apercu-du-projet)
 2. [Architecture du projet](#architecture-du-projet)
-3. [Installation](#installation)
-4. [Configuration des variables d'environnement](#configuration-des-variables-denvironnement)
-5. [Configuration Kaggle](#configuration-kaggle)
-6. [Telechargement des datasets](#telechargement-des-datasets)
-7. [Nettoyage des donnees](#nettoyage-des-donnees)
-8. [Analyse exploratoire EDA](#analyse-exploratoire-eda)
-9. [Pipeline complet](#pipeline-complet)
-10. [Verification PyTorch](#verification-pytorch)
-11. [Parametres configurables](#parametres-configurables)
-12. [Problemes frequents](#problemes-frequents)
+3. [Prerequis](#prerequis)
+4. [Installation](#installation)
+5. [Configuration](#configuration)
+6. [Datasets](#datasets)
+7. [Utilisation](#utilisation)
+8. [Tests](#tests)
+9. [Parametres](#parametres)
+10. [Resultats attendus](#resultats-attendus)
+11. [Problemes frequents](#problemes-frequents)
+12. [Notes importantes](#notes-importantes)
 
 ---
 
-## Prerequis
+## Apercu du projet
 
-Avant de commencer, installer les outils suivants :
-
-| Outil    | Version minimale | Lien                          |
-|----------|-----------------|-------------------------------|
-| Python   | 3.9+            | https://www.python.org        |
-| Git      | derniere        | https://git-scm.com           |
-| VS Code  | derniere        | https://code.visualstudio.com |
-
-Extensions VS Code recommandees :
-- Python (Microsoft)
-- Jupyter (Microsoft)
-- Pylance (Microsoft)
+| Element | Detail |
+|---|---|
+| Tache 1 | Classification de 7 types de lesions — dataset HAM10000 (10 015 images) |
+| Tache 2 | Segmentation binaire des lesions — dataset PH2 (200 images + masques) |
+| Modele classification | ResNet50 fine-tune ImageNet |
+| Modele segmentation | UNet encodeur ResNet34 pretraine |
+| Loss classification | FocalLoss (gamma=2) + poids de classes |
+| Loss segmentation | DiceBCELoss |
+| Framework | PyTorch 2.0+ |
+| Tracking | MLflow |
 
 ---
 
@@ -45,630 +42,380 @@ Extensions VS Code recommandees :
 pfa_Dectection_seg_LC_IM/
 |
 |-- config/
-|   `-- config.py              # Tous les parametres centralises (lit depuis .env)
+|   |-- __init__.py
+|   `-- config.py                  # Parametres centralises, lit depuis .env
 |
 |-- data/
-|   |-- download.py            # Telechargement des datasets via Kaggle
-|   `-- clean.py               # Nettoyage PH2 + verification paires
+|   |-- download.py                # Telechargement automatique via Kaggle
+|   `-- clean.py                   # Nettoyage PH2 + verification paires image/masque
 |
 |-- preprocessing/
-|   |-- transforms.py          # Augmentations HAM10000 et PH2 synchronisees
-|   `-- datasets.py            # Classes Dataset PyTorch + DataLoaders
+|   |-- __init__.py
+|   |-- transforms.py              # Augmentations albumentations HAM10000 + PH2
+|   `-- datasets.py                # Dataset PyTorch + DataLoaders + WeightedSampler
+|
+|-- models/
+|   |-- __init__.py
+|   |-- classifier.py              # ResNet50 fine-tune
+|   |-- segmentor.py               # UNet ResNet34
+|   `-- losses.py                  # FocalLoss + DiceBCELoss + LabelSmoothingLoss
 |
 |-- utils/
-|   `-- eda.py                 # Analyse exploratoire + visualisations
+|   |-- __init__.py
+|   |-- seed.py                    # Reproductibilite totale
+|   |-- metrics.py                 # F1, AUROC, Dice, IoU
+|   |-- callbacks.py               # EarlyStopping + ModelCheckpoint
+|   |-- tracking.py                # MLflow experiment tracking
+|   `-- eda.py                     # Analyse exploratoire + visualisations
 |
-|-- outputs/                   # Graphiques generes automatiquement
-|-- checkpoints/               # Poids des modeles sauvegardes
-|-- main.py                    # Point d'entree principal
-|-- requirements.txt           # Dependances Python
-|-- .env                       # Variables d'environnement - NE PAS PUSHER
-|-- .env.example               # Template .env pour les collaborateurs
-|-- .gitignore                 # Fichiers exclus de Git
-`-- README.md                  # Ce fichier
+|-- tests/
+|   |-- __init__.py
+|   `-- test_datasets.py           # 34 tests unitaires
+|
+|-- outputs/                       # Graphiques EDA generes automatiquement
+|-- checkpoints/                   # Poids des modeles sauvegardes
+|-- logs/                          # Logs d'entrainement
+|-- mlruns/                        # Runs MLflow
+|-- main.py                        # Pipeline de donnees complet
+|-- train.py                       # Boucle d'entrainement Phase 2
+|-- evaluate.py                    # Evaluation finale sur test set
+|-- predict.py                     # Inference sur nouvelles images
+|-- conftest.py                    # Configuration pytest
+|-- requirements.txt
+|-- .env                           # Credentials Kaggle — NE PAS PUSHER
+|-- .env.example                   # Template credentials pour collaborateurs
+|-- .gitignore
+`-- README.md
 ```
+
+---
+
+## Prerequis
+
+| Outil | Version minimale | Lien |
+|---|---|---|
+| Python | 3.9+ | https://www.python.org |
+| Git | derniere | https://git-scm.com |
+| VS Code | derniere | https://code.visualstudio.com |
+
+Extensions VS Code recommandees : Python, Jupyter, Pylance (Microsoft).
 
 ---
 
 ## Installation
 
-### Etape 1 - Cloner le projet
-
-Utiliser cette commande pour recuperer le projet depuis GitHub.
-A faire une seule fois sur chaque machine.
+### Etape 1 — Cloner le projet
 
 ```bash
 git clone https://github.com/TON_USERNAME/PFA-2A-Skin-Lesion.git
 cd PFA-2A-Skin-Lesion
 ```
 
-### Etape 2 - Creer l'environnement virtuel
-
-L'environnement virtuel isole les dependances du projet.
-A faire une seule fois par machine.
+### Etape 2 — Creer et activer l'environnement virtuel
 
 ```bash
 python -m venv venv
-```
 
-### Etape 3 - Activer l'environnement virtuel
-
-A faire a chaque fois que vous ouvrez un nouveau terminal.
-
-```bash
-# Sur Windows :
+# Windows
 venv\Scripts\activate
 
-# Sur Mac / Linux :
+# Mac / Linux
 source venv/bin/activate
 ```
 
-Verification : le prefixe (venv) doit apparaitre dans le terminal.
-
-```
-(venv) C:\Users\...>
-```
-
-### Etape 4 - Installer les dependances
-
-Installe tous les packages necessaires listes dans requirements.txt.
-A faire une seule fois apres avoir active le venv.
+### Etape 3 — Installer les dependances
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Duree estimee : 5 a 15 minutes selon la connexion (PyTorch fait environ 2 GB).
-
 ### Verification de l'installation
 
 ```bash
-python -c "import torch; import sklearn; import pandas; import matplotlib; print('Installation OK')"
-```
-
-Resultat attendu :
-```
-Installation OK
+python -c "
+import torch, albumentations, torchmetrics, mlflow
+print('PyTorch      :', torch.__version__)
+print('Albumentations:', albumentations.__version__)
+print('Torchmetrics :', torchmetrics.__version__)
+print('MLflow       :', mlflow.__version__)
+print('GPU          :', torch.cuda.is_available())
+"
 ```
 
 ---
 
-## Configuration des variables d'environnement
+## Configuration
 
-### Pourquoi un fichier .env ?
+### Fichier .env — Credentials Kaggle
 
-Les credentials Kaggle ne doivent jamais etre ecrits directement dans le code
-et ne doivent jamais etre pousses sur GitHub.
-Le fichier .env stocke ces informations de facon securisee sur ta machine uniquement.
-
-### Etape 5 - Creer le fichier .env
-
-Un fichier template .env.example est fourni dans le projet.
-Il suffit de le copier et de le remplir.
+Copier le template et remplir les credentials :
 
 ```bash
-# Sur Windows :
+# Windows
 copy .env.example .env
 
-# Sur Mac / Linux :
+# Mac / Linux
 cp .env.example .env
 ```
 
-### Etape 6 - Remplir le fichier .env
-
-Ouvrir le fichier .env et remplacer les valeurs par tes credentials Kaggle :
+Contenu du fichier `.env` :
 
 ```
 KAGGLE_USERNAME=ton_username_kaggle
 KAGGLE_KEY=ta_cle_api_kaggle
 ```
 
-Pour recuperer tes credentials Kaggle :
-1. Aller sur https://www.kaggle.com/settings
-2. Section API
-3. Cliquer sur "Create New Token"
-4. Un fichier kaggle.json est telecharge contenant username et key
+Pour obtenir les credentials : https://www.kaggle.com/settings -> API -> Create New Token.
 
-### Verifier que le fichier .env est bien charge
+Verifier que la configuration est correcte :
 
 ```bash
 python -c "
 from dotenv import load_dotenv
 import os
 load_dotenv()
-username = os.getenv('KAGGLE_USERNAME')
-key      = os.getenv('KAGGLE_KEY')
-print('KAGGLE_USERNAME :', username if username else 'MANQUANT')
-print('KAGGLE_KEY      :', key[:6] + '...' if key else 'MANQUANT')
+print('USERNAME :', os.getenv('KAGGLE_USERNAME'))
+print('KEY      :', os.getenv('KAGGLE_KEY')[:6] + '...')
 "
 ```
 
-Resultat attendu :
-```
-KAGGLE_USERNAME : med sdt
-KAGGLE_KEY      : KGAT_f...
-```
-
-### Fichiers .env et securite
-
-| Fichier       | Sur GitHub | Role                                      |
-|---------------|------------|-------------------------------------------|
-| .env          | Non        | Contient tes vraies cles API              |
-| .env.example  | Oui        | Template vide a remplir par le binome     |
-
-Le fichier .env est protege par .gitignore et ne sera jamais pousse sur GitHub.
-
 ---
 
-## Configuration Kaggle
+## Datasets
 
-### Pourquoi Kaggle ?
+### HAM10000 — Classification
 
-Les trois datasets du projet sont heberges sur Kaggle.
-L'API Kaggle permet de les telecharger directement en ligne de commande.
+| Classe | Description | Images | Pourcentage |
+|---|---|---|---|
+| nv | Naevi melanocytaires | 6705 | 66.9% |
+| mel | Melanome | 1113 | 11.1% |
+| bkl | Keratose benigne | 1099 | 11.0% |
+| bcc | Carcinome basocellulaire | 514 | 5.1% |
+| akiec | Keratose actinique | 327 | 3.3% |
+| vasc | Lesion vasculaire | 142 | 1.4% |
+| df | Dermatofibrome | 115 | 1.1% |
 
-### Etape 7 - Installer Kaggle
+Dataset fortement desequilibre (ratio x58 entre nv et df). Les poids de classes et le `WeightedRandomSampler` sont appliques automatiquement.
 
-```bash
-pip install kaggle
-```
+### PH2 — Segmentation
 
-### Verifier la configuration
+200 images dermoscopiques avec masques annotes manuellement. Dimensions : ~765x575 pixels. Couverture moyenne de la lesion : 32.2% des pixels. Masques binaires : 0 = fond, 1 = lesion.
 
-Les credentials sont lus automatiquement depuis le fichier .env via config/config.py.
-Pour tester que la connexion fonctionne :
-
-```bash
-kaggle datasets list
-```
-
-Si cette commande retourne une liste de datasets, la configuration est correcte.
-
----
-
-## Telechargement des datasets
-
-### Etape 8 - Lancer le telechargement automatique
-
-Ce script configure Kaggle et telecharge les 3 datasets en une seule commande.
-A lancer une seule fois depuis la racine du projet.
+### Telechargement
 
 ```bash
 python data/download.py
 ```
 
-Ce qui est telecharge :
+Taille totale : ~5.2 GB. Duree estimee : 10 a 30 minutes.
 
-| Dataset   | Taille   | Contenu                                        |
-|-----------|----------|------------------------------------------------|
-| HAM10000  | 3.5 GB   | 10 015 images .jpg + HAM10000_metadata.csv     |
-| DermNet   | 1.5 GB   | Images de maladies de peau                     |
-| PH2       | 200 MB   | 200 images .bmp + 200 masques .bmp annotes     |
-
-Duree estimee : 10 a 30 minutes selon la connexion.
-
-### Telechargement manuel (si le script echoue)
-
-En cas d'echec du script, telecharger chaque dataset individuellement :
+En cas de blocage de `unzip` sur Windows :
 
 ```bash
-kaggle datasets download -d kmader/skin-cancer-mnist-ham10000 -p data/HAM10000 --unzip
-kaggle datasets download -d shubhamgoel27/dermnet -p data/DermNet --unzip
-kaggle datasets download -d spacesurfer/ph2-dataset -p data/PH2 --unzip
-```
-
-### Extraction manuelle sur Windows (si unzip bloque)
-
-Sur Windows, la commande unzip peut se bloquer indefiniment.
-Utiliser Python a la place :
-
-```bash
-python -c "import zipfile; zipfile.ZipFile('skin-cancer-mnist-ham10000.zip').extractall('data/HAM10000'); print('HAM10000 OK')"
-python -c "import zipfile; zipfile.ZipFile('dermnet.zip').extractall('data/DermNet'); print('DermNet OK')"
-python -c "import zipfile; zipfile.ZipFile('ph2-dataset.zip').extractall('data/PH2'); print('PH2 OK')"
-```
-
-### Verifier que les datasets sont bien telecharges
-
-```bash
-python -c "
-import os
-datasets = {'HAM10000': 'data/HAM10000', 'DermNet': 'data/DermNet', 'PH2': 'data/PH2'}
-for name, path in datasets.items():
-    if os.path.exists(path):
-        count = sum(len(f) for _, _, f in os.walk(path))
-        print(f'[OK] {name} : {count} fichiers')
-    else:
-        print(f'[MANQUANT] {name} : dossier introuvable')
-"
+python -c "import zipfile; zipfile.ZipFile('NOM.zip').extractall('DOSSIER')"
 ```
 
 ---
 
-## Nettoyage des donnees
+## Utilisation
 
-### Quand utiliser cette commande ?
-
-A lancer une seule fois apres le telechargement de PH2.
-PH2 a une structure imbriquee complexe. Ce script la reorganise en deux dossiers plats.
-
-### Etape 9 - Nettoyer PH2
+### Phase 1 — Pipeline de donnees
 
 ```bash
+# 1. Nettoyer PH2 et verifier les paires image/masque
 python data/clean.py
-```
 
-Ce que fait ce script dans l'ordre :
-
-1. Parcourt la structure complexe de PH2 (un sous-dossier par image)
-2. Copie chaque image vers data/PH2_clean/images/
-3. Copie chaque masque vers data/PH2_clean/masks/
-4. Binarise les masques : pixel > 127 devient 1 (lesion), sinon 0 (fond)
-5. Verifie que chaque image a exactement son masque correspondant
-
-Structure creee apres nettoyage :
-
-```
-data/PH2_clean/
-|-- images/
-|   |-- IMD002.bmp
-|   |-- IMD003.bmp
-|   `-- ...  (200 fichiers au total)
-`-- masks/
-    |-- IMD002.bmp
-    |-- IMD003.bmp
-    `-- ...  (200 fichiers au total)
-```
-
-Resultat attendu dans le terminal :
-
-```
-[OK] PH2 nettoye - 200 paires image/masque copiees
-[OK] 200 masques binarises
-[OK] 200 paires image/masque verifiees - aucun mismatch
-```
-
-### Verifier le nettoyage manuellement
-
-```bash
-python -c "
-import os
-imgs  = len(os.listdir('data/PH2_clean/images'))
-masks = len(os.listdir('data/PH2_clean/masks'))
-print(f'Images  : {imgs}')
-print(f'Masques : {masks}')
-print('OK' if imgs == masks == 200 else 'ERREUR - mismatch detecte')
-"
-```
-
-### Verifier la correspondance HAM10000
-
-```bash
-python -c "
-import pandas as pd, os
-meta = pd.read_csv('data/HAM10000/HAM10000_metadata.csv')
-found = 0
-for iid in meta['image_id']:
-    for part in ['HAM10000_images_part_1', 'HAM10000_images_part_2']:
-        if os.path.exists(f'data/HAM10000/{part}/{iid}.jpg'):
-            found += 1
-            break
-print(f'Images trouvees : {found} / {len(meta)}')
-"
-```
-
----
-
-## Analyse exploratoire EDA
-
-### Quand utiliser cette commande ?
-
-A lancer apres le nettoyage pour visualiser les donnees avant l'entrainement.
-Genere des graphiques utiles pour le rapport et pour comprendre les donnees.
-
-### Etape 10 - Lancer l'EDA
-
-```bash
+# 2. Analyse exploratoire — genere 4 graphiques dans outputs/
 python utils/eda.py
-```
 
-Duree estimee : 5 a 10 minutes (parcourt les 10 000 images HAM10000).
-
-Fichiers generes dans outputs/ :
-
-| Fichier                 | Contenu                                                  |
-|-------------------------|----------------------------------------------------------|
-| class_distribution.png  | 4 graphiques sur le desequilibre des 7 classes           |
-| representative_grid.png | Grille 7 lignes x 5 colonnes d'images par categorie      |
-| ham_image_quality.png   | Dimensions + luminosite + luminosite par classe          |
-| ph2_image_quality.png   | Dimensions + luminosite + couverture masque PH2          |
-
----
-
-## Pipeline complet
-
-### Etape 11 - Lancer le pipeline
-
-Lance toutes les etapes dans l'ordre : nettoyage, EDA, creation des DataLoaders.
-
-```bash
+# 3. Pipeline complet Phase 1
 python main.py
 ```
 
-Resultat attendu :
-
-```
-=======================================================
-  PFA 2A - Detection & Segmentation Lesions Cutanees
-=======================================================
-
-Etape 1 - Nettoyage des datasets
-[OK] PH2 nettoye - 200 paires copiees
-[OK] 200 masques binarises
-[OK] 200 paires verifiees
-
-Etape 2 - Analyse exploratoire
-[OK] class_distribution.png sauvegarde
-[OK] representative_grid.png sauvegarde
-[OK] ham_image_quality.png sauvegarde
-[OK] ph2_image_quality.png sauvegarde
-
-Etape 3 - Creation des DataLoaders
-HAM10000 - Train: 7010 | Val: 1502 | Test: 1503
-PH2      - Train: 140  | Val: 30   | Test: 30
-
-[OK] Pipeline de donnees pret !
-```
-
-### Ordre d'execution complet - resume
+### Phase 2 — Entrainement des modeles
 
 ```bash
-# Activer l'environnement (a faire a chaque nouveau terminal)
-venv\Scripts\activate          # Windows
-source venv/bin/activate       # Mac/Linux
+# Lancer l'entrainement Classification + Segmentation
+python train.py
+```
 
-# Configurer le fichier .env (une seule fois)
-copy .env.example .env         # Windows
-cp .env.example .env           # Mac/Linux
-# Puis remplir .env avec tes credentials Kaggle
+Ce script execute dans l'ordre :
+- Entrainement ResNet50 sur HAM10000 avec FocalLoss + EarlyStopping
+- Entrainement UNet sur PH2 avec DiceBCELoss + EarlyStopping
+- Sauvegarde des meilleurs poids dans `checkpoints/`
+- Tracking complet dans MLflow
 
-# Telecharger les datasets (une seule fois)
+Pour visualiser les runs MLflow :
+
+```bash
+mlflow ui
+# Ouvrir http://localhost:5000
+```
+
+### Evaluation
+
+```bash
+python evaluate.py
+```
+
+Genere dans `outputs/` :
+- Matrice de confusion HAM10000
+- Exemples de segmentation PH2 (image / masque reel / masque predit)
+
+### Inference sur une image
+
+```bash
+# Classification + Segmentation
+python predict.py --image path/to/image.jpg --task both
+
+# Classification uniquement
+python predict.py --image path/to/image.jpg --task classification
+
+# Segmentation uniquement
+python predict.py --image path/to/image.jpg --task segmentation
+```
+
+### Ordre d'execution complet
+
+```bash
+# Activer le venv
+venv\Scripts\activate
+
+# Phase 1 — Donnees
 python data/download.py
-
-# Nettoyer PH2 (une seule fois)
 python data/clean.py
-
-# Analyse exploratoire
 python utils/eda.py
 
-# Pipeline complet
-python main.py
+# Phase 2 — Entrainement
+python train.py
+
+# Evaluation
+python evaluate.py
 ```
 
 ---
 
-## Verification PyTorch
-
-### Verifier que PyTorch est correctement installe
+## Tests
 
 ```bash
-python -c "import torch; print('Version PyTorch :', torch.__version__)"
+pytest tests/test_datasets.py -v
 ```
 
-### Verifier la disponibilite du GPU
+La suite couvre 34 tests :
 
-```bash
-python -c "
-import torch
-print('GPU disponible :', torch.cuda.is_available())
-if torch.cuda.is_available():
-    print('Nom du GPU     :', torch.cuda.get_device_name(0))
-    print('Memoire GPU    :', round(torch.cuda.get_device_properties(0).total_memory / 1e9, 1), 'GB')
-"
-```
-
-### Verifier qu'un tenseur peut etre cree
-
-```bash
-python -c "
-import torch
-x = torch.rand(3, 224, 224)
-print('Tenseur cree - Shape :', x.shape, '| dtype :', x.dtype)
-"
-```
-
-### Tester le DataLoader HAM10000
-
-```bash
-python -c "
-from preprocessing.datasets import get_ham10000_loaders
-train, val, test, weights = get_ham10000_loaders()
-images, labels = next(iter(train))
-print('Batch images shape :', images.shape)
-print('Batch labels shape :', labels.shape)
-print('Class weights      :', weights.tolist())
-"
-```
+- Shapes des batches images et labels/masques
+- Valeurs normalisees dans [-3, 3]
+- Masques strictement binaires {0, 1}
+- Absence de data leakage entre train / val / test
+- Proportions du split 70/15/15
+- Alignement image masque PH2
+- Shapes de sortie ResNet50 et UNet
+- Softmax qui somme a 1
+- Comportement correct FocalLoss et DiceBCELoss
 
 Resultat attendu :
-```
-Batch images shape : torch.Size([8, 3, 224, 224])
-Batch labels shape : torch.Size([8])
-Class weights      : [0.21, 1.34, 1.36, 2.90, 4.57, 10.57, 13.07]
-```
 
-### Tester le DataLoader PH2
-
-```bash
-python -c "
-from preprocessing.datasets import get_ph2_loaders
-train, val, test = get_ph2_loaders()
-images, masks = next(iter(train))
-print('Batch images shape  :', images.shape)
-print('Batch masques shape :', masks.shape)
-print('Valeurs masque      :', masks.unique().tolist())
-"
 ```
-
-Resultat attendu :
-```
-Batch images shape  : torch.Size([8, 3, 224, 224])
-Batch masques shape : torch.Size([8, 224, 224])
-Valeurs masque      : [0, 1]
-```
-
-### Verifier toutes les versions installees
-
-```bash
-python -c "
-import torch, torchvision, sklearn, pandas, matplotlib, seaborn, PIL
-print('torch       :', torch.__version__)
-print('torchvision :', torchvision.__version__)
-print('sklearn     :', sklearn.__version__)
-print('pandas      :', pandas.__version__)
-print('matplotlib  :', matplotlib.__version__)
-print('seaborn     :', seaborn.__version__)
-print('PIL         :', PIL.__version__)
-"
+34 passed
 ```
 
 ---
 
-## Parametres configurables
+## Parametres
 
-Tous les parametres du projet sont dans config/config.py.
-Modifier uniquement ce fichier pour changer le comportement global.
+Tous les parametres sont centralises dans `config/config.py`.
 
 ```python
-IMAGE_SIZE    = (224, 224)   # Taille des images apres redimensionnement
-IMAGENET_MEAN = [0.485, 0.456, 0.406]   # Normalisation standard ImageNet
-IMAGENET_STD  = [0.229, 0.224, 0.225]
+# Preprocessing
+IMAGE_SIZE      = (224, 224)
+IMAGENET_MEAN   = [0.485, 0.456, 0.406]
+IMAGENET_STD    = [0.229, 0.224, 0.225]
 
-TEST_SIZE     = 0.3          # 30% pour validation + test
-VAL_SIZE      = 0.5          # 50% du temp = 15% total
-RANDOM_STATE  = 42           # Seed pour reproductibilite
+# Split
+TEST_SIZE       = 0.3        # 30% pour val + test
+VAL_SIZE        = 0.5        # 50% du temp = 15% total
+RANDOM_STATE    = 42         # Seed reproductibilite
 
-BATCH_SIZE    = 8            # Reduire a 4 ou 2 si erreur memoire GPU
-NUM_WORKERS   = 2            # Mettre 0 sur Windows si erreur DataLoader
-NUM_EPOCHS    = 30
-LEARNING_RATE = 1e-4
+# Modeles
+DROPOUT_P       = 0.5        # Regularisation Dropout
+NUM_CLASSES_HAM = 7
+NUM_CLASSES_PH2 = 1
+
+# Losses
+FOCAL_GAMMA     = 2.0        # Focusing parameter FocalLoss
+LABEL_SMOOTHING = 0.1        # Evite la sur-confiance
+
+# Entrainement
+BATCH_SIZE      = 8          # Reduire a 4 si erreur memoire GPU
+NUM_EPOCHS      = 30
+LEARNING_RATE   = 1e-4
+WEIGHT_DECAY    = 1e-4       # Regularisation L2
+LR_MIN          = 1e-6       # Learning rate minimum CosineAnnealing
+WARMUP_EPOCHS   = 5          # Stabilisation debut entrainement
+GRAD_CLIP_NORM  = 1.0        # Evite explosion du gradient
+PATIENCE        = 10         # EarlyStopping
 ```
+
+---
+
+## Resultats attendus
+
+| Metrique | Modele | Objectif |
+|---|---|---|
+| F1 Macro | ResNet50 | > 0.75 |
+| AUROC | ResNet50 | > 0.90 |
+| Dice Score | UNet | > 0.85 |
+| IoU | UNet | > 0.75 |
 
 ---
 
 ## Problemes frequents
 
-### EnvironmentError : Variables KAGGLE_USERNAME et KAGGLE_KEY manquantes
-
-Le fichier .env est absent ou mal configure.
-
+**EnvironmentError : Variables Kaggle manquantes**
 ```bash
-# Creer le fichier .env depuis le template
-copy .env.example .env         # Windows
-cp .env.example .env           # Mac/Linux
+copy .env.example .env    # Windows
+cp .env.example .env      # Mac/Linux
+# Remplir les credentials dans .env
 ```
 
-Puis ouvrir .env et remplir les deux variables avec tes credentials Kaggle.
-
-### ImportError : cannot import name 'X' from config.config
-
-Le fichier config/config.py est une ancienne version.
-Recuperer la derniere version depuis GitHub :
-
-```bash
-git pull origin main
-```
-
-### kaggle: command not found
-
-```bash
-pip install kaggle
-```
-
-### unzip se bloque sur Windows
-
-Utiliser Python pour extraire l'archive :
-
-```bash
-python -c "import zipfile; zipfile.ZipFile('NOM_FICHIER.zip').extractall('DOSSIER_DESTINATION')"
-```
-
-### ModuleNotFoundError: No module named 'torch'
-
-Le venv n'est pas active ou les dependances ne sont pas installees :
-
+**ModuleNotFoundError**
 ```bash
 venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### CUDA out of memory
-
-Reduire la taille des batchs dans config/config.py :
-
+**CUDA out of memory**
 ```python
-BATCH_SIZE = 4    # ou 2 si le probleme persiste
+# Reduire dans config/config.py
+BATCH_SIZE = 4
 ```
 
-### RuntimeError: DataLoader worker process crashed (Windows)
-
-Mettre NUM_WORKERS a 0 dans config/config.py :
-
+**NUM_WORKERS erreur sur Windows**
 ```python
+# Mettre dans config/config.py
 NUM_WORKERS = 0
 ```
 
-### Session Google Colab reinitalisee (donnees perdues)
+**unzip bloque sur Windows**
+```bash
+python -c "import zipfile; zipfile.ZipFile('NOM.zip').extractall('DOSSIER')"
+```
 
-Monter Google Drive pour conserver les donnees entre les sessions :
-
+**Session Colab reinitalisee**
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
+# Modifier DATA_DIR dans config/config.py pour pointer vers Drive
 ```
-
-Puis modifier DATA_DIR dans config/config.py pour pointer vers Drive.
-
----
-
-## Informations sur les datasets
-
-### HAM10000 - Classification
-
-| Classe  | Nom complet                  | Images | Pourcentage |
-|---------|------------------------------|--------|-------------|
-| nv      | Naevi melanocytaires         | 6705   | 66.9%       |
-| mel     | Melanome                     | 1113   | 11.1%       |
-| bkl     | Keratose benigne             | 1099   | 11.0%       |
-| bcc     | Carcinome basocellulaire     | 514    | 5.1%        |
-| akiec   | Keratose actinique           | 327    | 3.3%        |
-| vasc    | Lesion vasculaire            | 142    | 1.4%        |
-| df      | Dermatofibrome               | 115    | 1.1%        |
-
-Le dataset est fortement desequilibre (nv = 66.9%).
-Des poids de classes sont calcules automatiquement dans datasets.py et doivent
-etre injectes dans la fonction de perte lors de l'entrainement :
-
-```python
-criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
-```
-
-### PH2 - Segmentation
-
-- 200 images dermoscopiques avec masques annotes manuellement
-- Dimensions : environ 765 x 575 pixels
-- Couverture moyenne de la lesion : 32.2% des pixels
-- Masques binaires : 0 = fond, 1 = lesion
 
 ---
 
 ## Notes importantes
 
-- Ne jamais versionner le dossier data/ sur GitHub (trop lourd, presente dans .gitignore)
-- Ne jamais versionner le fichier .env sur GitHub (credentials Kaggle, presente dans .gitignore)
-- Ne jamais versionner kaggle.json (cle API privee, presente dans .gitignore)
+- Ne jamais versionner `data/` sur GitHub — trop lourd, presente dans `.gitignore`
+- Ne jamais versionner `.env` — credentials Kaggle, presente dans `.gitignore`
 - Toujours activer le venv avant de lancer une commande Python
-- Toujours creer son propre .env depuis .env.example avant de lancer le projet
-- Les graphiques sont sauvegardes dans outputs/
-- Les poids des modeles seront sauvegardes dans checkpoints/
-- Modifier uniquement config/config.py pour changer les parametres globaux
+- Travailler sur la branche `develop`, jamais directement sur `main`
+- `conftest.py` est necessaire a la racine pour que pytest trouve les modules
+- Modifier uniquement `config/config.py` pour changer les parametres globaux
+- Les graphiques EDA sont dans `outputs/`, les poids des modeles dans `checkpoints/`
