@@ -4,6 +4,7 @@
 # Usage : pytest tests/test_datasets.py -v
 # ============================================================
 
+import os
 import pytest
 import torch
 import numpy as np
