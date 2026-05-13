@@ -13,7 +13,11 @@ __pycache__/
 Thumbs.db
 
 # NOUVEAU Phase 2
-logs/              # logs d'entraînement
-mlruns/            # runs MLflow
-*.log              # fichiers log
-runs/              # tensorboard si utilisé
+# logs d'entraînement
+logs/
+# runs MLflow
+mlruns/
+# fichiers log
+*.log
+# tensorboard si utilisé
+runs/
